@@ -1,0 +1,14 @@
+#要清理的日志或备份文件所在目录
+workdir: "/datadisk/testdata"
+#定时执行清理任务
+corn: "0 0 0 * * ? *"
+filter:
+  #清理文件还是目录
+  file: true
+  #清理服务正则表达式的文件或目录
+  regex: ""
+clear:
+  #最少保留最近几个文件
+  keep: 100
+  #最少保留最近几天的文件
+  offset: "180d"
