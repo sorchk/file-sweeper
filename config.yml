@@ -1,14 +1,25 @@
-#要清理的日志或备份文件所在目录
-workdir: "/datadisk/testdata"
-#定时执行清理任务
-corn: "0 0 0 * * ? *"
-filter:
-  #清理文件还是目录
-  file: true
-  #清理服务正则表达式的文件或目录
-  regex: ""
-clear:
-  #最少保留最近几个文件
-  keep: 100
-  #最少保留最近几天的文件
-  offset: "180d"
+tasks:
+  - name: "任务1"
+    workdir: "/datadisk/testdata1"
+    filter-regex: ".+\\.txt"
+  - name: "任务2"
+    #要清理的日志或备份文件所在目录
+    workdir: "/datadisk/testdata2"
+    #定时执行清理任务
+    corn: "0 0 0 * * ? *"
+    #清理符合类型的 1 文件 2目录 3全部
+    filter-type: 1
+    #清理符合正则表达式的文件或目录
+    filter-regex: ".+\\.txt"
+    #排除文件 排除优先与 上面的规则
+    excludes-regex:
+      - ".+副本 +4.+\\.txt"
+      - ".+副本 +5.+\\.txt"
+    #最少保留最近几个文件
+    clear-keep: 3
+    #最少保留最近几天的文件
+    time-offset: "1h"
+    #最大处理文件数，超出后将在下次任务处理
+    max-batch: 200
+    #测试模式不会删除文件
+    test: true

@@ -11,42 +11,48 @@ import (
 	"strings"
 )
 
-var logger service.Logger
-
 var action string
 var configPath string
 
 func init() {
-	flag.StringVar(&action, "a", "help", "交互命令： clear 服务命令： install uninstall start stop restart status")
+	flag.StringVar(&action, "a", "help", "交互命令：\n"+
+		"-a help 查看帮助\n"+
+		"-a clear 立即执行清理\n"+
+		"-a install 安装服务\n"+
+		"-a uninstall 卸载服务\n"+
+		"-a start 启动服务\n"+
+		"-a stop 停止服务\n"+
+		"-a status 服务状态n\n"+
+		"-a restart 重启服务")
 	flag.StringVar(&configPath, "c", "", "配置文件路径")
+}
+
+func isServiceCmd(target string) bool {
+	strArray := []string{"install", "uninstall", "start", "stop", "restart", "status"}
+	for _, element := range strArray {
+		if target == element {
+			return true
+		}
+	}
+	return false
 }
 
 func main() {
 	flag.Parse()
-	log.Println("action:" + action)
-	log.Println("configPath:" + configPath)
-
+	log.Printf("交互命令:%s\n", action)
+	if configPath == "" {
+		configPath = "config.yml"
+	}
+	log.Printf("配置文件:%s\n", configPath)
 	if action == "clear" {
 		//立即清理
-		fileClear.Clear(configPath)
+		fileClear.ClearAll(configPath)
 		return
-	} else if action == "help" {
-		log.Println("-a help 查看帮助")
-		log.Println("-a clear 立即执行清理")
-		log.Println("-a install 安装服务")
-		log.Println("-a uninstall 卸载服务")
-		log.Println("-a start 启动服务")
-		log.Println("-a stop 停止服务")
-		log.Println("-a restart 重启服务")
-		log.Println("-a status 服务状态")
-		//帮助信息
-		return
-	} else {
+	} else if isServiceCmd(action) {
 		options := make(service.KeyValue)
 		options["LogOutput"] = true
 		options["HasOutputFileSupport"] = true
 		options["WorkingDirectory"] = GetCurrentDirectory()
-
 		svcConfig := &service.Config{
 			Name:        "fileClear",
 			DisplayName: "文件清理服务",
@@ -64,50 +70,63 @@ func main() {
 		pro := &Program{}
 		s, err := service.New(pro, svcConfig)
 		if err != nil {
-			log.Fatal("service.New() err:", err)
+			log.Fatal(":", err)
 		}
-		errs := make(chan error, 5)
-		logger, err = s.Logger(errs)
-		if err != nil {
-			log.Fatal(err)
-		}
+		//errs := make(chan error, 5)
+		//logger, err = s.Logger(errs)
+		//if err != nil {
+		//	log.Fatal(err)
+		//	return
+		//}
 		if action == "install" {
-			err = s.Install()
+			err := s.Install()
 			if err != nil {
-				logger.Error("安装服务成功:", err)
+				log.Fatalf("安装服务成功:%v\n", err)
 			} else {
-				logger.Info("安装服务成功")
+				log.Println("安装服务成功")
 			}
 			return
 		} else if action == "uninstall" {
 			log.Println(action)
-			err = s.Uninstall()
+			err := s.Uninstall()
 			if err != nil {
-				logger.Error("卸载服务失败:", err)
+				log.Fatalf("卸载服务失败:%v\n", err)
 			} else {
-				logger.Info("卸载服务成功")
+				log.Println("卸载服务成功")
 			}
 			return
 		} else if action == "stop" {
-			log.Println(action)
-			err = s.Stop()
-			return
-		} else if action == "restart" {
-			log.Println(action)
-			err = s.Restart()
-			return
-		} else if action == "status" {
-			log.Println(action)
-			status, err := s.Status()
-			logger.Info("status:", status, " （1运行，2停止）")
+			err := s.Stop()
 			if err != nil {
-				logger.Error("服务启动失败:", err)
+				log.Fatalf("停止服务失败:%v\n", err)
+			} else {
+				log.Println("停止服务成功")
 			}
 			return
-		}
-		err = s.Run() // 运行服务
-		if err != nil {
-			logger.Error("服务启动失败:", err)
+		} else if action == "restart" {
+			err := s.Restart()
+			if err != nil {
+				log.Fatalf("重启服务失败:%v\n", err)
+			} else {
+				log.Println("重启服务成功")
+			}
+			return
+		} else if action == "status" {
+			status, err := s.Status()
+			log.Printf("服务状态:%v  %s\n", status, " （0错误，1运行，2停止）")
+			if err != nil {
+				log.Fatalf("读取服务状态失败:%v\n", err)
+			}
+			return
+		} else if action == "start" {
+			err = s.Run() // 运行服务
+			if err != nil {
+				log.Fatalf("服务启动失败:%v\n", err)
+			} else {
+				log.Println("服务启动成功")
+			}
+		} else {
+			log.Fatalf("不支持的服务命令:%v\n", action)
 		}
 	}
 }
@@ -117,13 +136,13 @@ type Program struct {
 }
 
 func (p *Program) Start(s service.Service) error {
-	logger.Infof("启动服务 %v. action: %v", service.Platform(), action)
+	log.Printf("启动服务 %v. action: %s\n", service.Platform(), action)
 	p.exit = make(chan struct{})
 	go p.run()
 	return nil
 }
 func (p *Program) Stop(s service.Service) error {
-	logger.Info("停止服务!")
+	log.Println("停止服务!")
 	close(p.exit)
 	return nil
 }

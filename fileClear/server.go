@@ -2,15 +2,14 @@ package fileClear
 
 import (
 	"errors"
-	"github.com/jinzhu/configor"
 	"github.com/robfig/cron"
+	"gopkg.in/yaml.v2"
 	"io/fs"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -18,37 +17,97 @@ import (
 	"time"
 )
 
-type ConfigData struct {
+type Task struct {
+	Name string `required:"true"`
 	//  要清理的日志或备份文件所在目录
-	Workdir string `default:""`
+	Workdir string `required:"true"`
 	//  定时执行清理任务
 	Corn string `default:"0 0 0 * * ? *"`
-
-	Filter struct {
-		//清理文件还是目录
-		File bool `default:"true"`
-		//清理服务正则表达式的文件或目录
-		Regex string `default:""`
-	}
-	Clear struct {
-		//最少保留最近几个文件
-		Keep int `default:"100"`
-		//最少保留最近几天的文件
-		Offset string `default:"190d"`
-	}
+	//清理文件还是目录  1文件2目录
+	Type int `yaml:"filter-type"`
+	//清理服务正则表达式的文件或目录
+	Regex    string   `yaml:"filter-regex"`
+	Excludes []string `yaml:"excludes-regex"`
+	//最少保留最近几个文件
+	Keep int `yaml:"clear-keep"`
+	//最少保留最近几天(多久)的文件
+	Offset string `yaml:"time-offset"`
+	//批量处理文件数
+	Batch int `yaml:"max-batch"`
+	//测试模式不会删除文件
+	Test bool `yaml:"test"`
+}
+type TaskConfig struct {
+	Tasks []Task `yaml:"tasks"`
 }
 
+func readYaml(path string) (TaskConfig, error) {
+	var taskConfig = TaskConfig{}
+	//err := configor.Load(&taskConfig, path)
+	f, err := os.Open(path)
+	if err != nil {
+		return taskConfig, err
+	}
+	defer f.Close()
+	dec := yaml.NewDecoder(f)
+	err = dec.Decode(&taskConfig)
+	if err == nil {
+		for i, _ := range taskConfig.Tasks {
+			var task = &taskConfig.Tasks[i]
+			if task.Corn == "" {
+				task.Corn = "0 0 0 * * ? *"
+			}
+			if task.Regex == "" {
+				task.Regex = ".+/.log"
+			}
+			if task.Type < 1 {
+				task.Type = 1
+			}
+			if task.Keep < 1 {
+				task.Keep = 100
+			}
+			if task.Batch < 1 {
+				task.Batch = 1000
+			}
+			if task.Batch < task.Keep {
+				task.Batch = task.Keep
+			}
+			if task.Offset == "" {
+				task.Offset = "190d"
+			}
+		}
+	}
+	log.Printf("%v\n", taskConfig)
+
+	return taskConfig, err
+}
 func StartServer(configPath string) {
+	var config, err = readYaml(configPath)
+	if err != nil {
+		log.Fatalf("读取配置文件发生错误：%v", err)
+		return
+	}
 	c := cron.New()
-	spec := "*/5 * * * * ?"
-	c.AddFunc(spec, func() {
-		Clear(configPath)
-	})
+	for _, task := range config.Tasks {
+		spec := task.Corn
+		c.AddFunc(spec, func() {
+			//Clear(task)
+		})
+	}
+
 	//启动计划任务
 	c.Start()
 	//关闭着计划任务, 但是不能关闭已经在执行中的任务.
 	defer c.Stop()
 	select {}
+}
+func ClearAll(configPath string) {
+	var config, err = readYaml(configPath)
+	if err != nil {
+		log.Fatalf("读取配置文件发生错误：%v\n", err)
+		return
+	}
+	Clear(config)
 }
 func getDurationTime(timeStr string) time.Duration {
 	i := strings.Index(timeStr, "d")
@@ -90,99 +149,103 @@ func getDurationTime(timeStr string) time.Duration {
 	}
 	return dayTime + hourTime + minuteTime + secondTime
 }
-func Clear(configPath string) {
-	if configPath == "" {
-		configPath = "config.yml"
-	}
-	var config = ConfigData{}
-	err := configor.Load(&config, configPath)
-	if err != nil {
-		log.Println("读取配置文件发生错误：", err)
-	}
-	if config.Workdir == "" {
-		config.Workdir = GetCurrentDirectory()
-	}
-	log.Println("config：", config)
-	//列文件或目录
-	files, err := ListDir(config)
-	if err != nil {
-		log.Fatal("读取文件目录发生错误：", nil)
-		return
-	}
-	//按修改时间倒叙排列
-	sort.Sort(byModTime(files))
-	log.Println("文件列表：")
-	for _, fi := range files {
-		log.Println(fi.Name())
-	}
-	//跳过最小保留文件数
-	keep := len(files)
-	log.Println("文件数量：" + strconv.Itoa(keep))
-	if config.Clear.Keep < keep {
-		keep = config.Clear.Keep
-	}
-	log.Println("保留文件数量：" + strconv.Itoa(keep))
-	files = files[keep:]
-	//计算偏移时间
-	offsetTime := getDurationTime(config.Clear.Offset)
-	log.Println("保留最近文件时间：" + offsetTime.String())
-	for _, fi := range files {
-		if fi.ModTime().UnixMilli() > (time.Now().UnixMilli() - offsetTime.Milliseconds()) {
-			//跳过保留内的文件
-			continue
+
+func Clear(config TaskConfig) {
+	for _, task := range config.Tasks {
+		log.Printf("[%s]-开始执行清理任务,%v\n", task.Name, task)
+		if task.Test {
+			log.Println("[%s]-测试模式\n", task.Name)
 		}
-		delPath := config.Workdir + string(os.PathSeparator) + fi.Name()
-		log.Println("删除文件：" + delPath)
-		//删除文件
-		err = os.RemoveAll(delPath)
+		//列文件或目录
+		files, err := ListDir(task)
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("[%s]-读取文件目录发生错误：%v\n", task.Name, err)
+			return
 		}
-	}
-	if err != nil {
-		log.Fatal("清理时发生错误：", nil)
-		return
+		//按修改时间倒叙排列
+		sort.Sort(byModTime(files))
+		log.Printf("[%s]-文件列表：\n", task.Name)
+		for _, fi := range files {
+			log.Printf("[%s]-%s\n", task.Name, fi.Name())
+		}
+		//跳过最小保留文件数
+		keep := len(files)
+		log.Printf("[%s]-文件数量：%d\n", task.Name, keep)
+		if task.Keep < keep {
+			keep = task.Keep
+		}
+		log.Printf("[%s]-保留文件数量：%d\n", task.Name, keep)
+		files = files[keep:]
+		//计算偏移时间
+		offsetTime := getDurationTime(task.Offset)
+		log.Printf("[%s]-保留最近文件时间：%s\n", task.Name, offsetTime.String())
+		for _, fi := range files {
+			if fi.ModTime().UnixMilli() > (time.Now().UnixMilli() - offsetTime.Milliseconds()) {
+				//跳过保留内的文件
+				continue
+			}
+			delPath := task.Workdir + string(os.PathSeparator) + fi.Name()
+			log.Printf("[%s]-删除文件：%s\n", task.Name, delPath)
+			if task.Test {
+				continue
+			}
+			//删除文件
+			err := os.RemoveAll(delPath)
+			if err != nil {
+				log.Printf("删除文件失败：%v\n", err)
+			}
+		}
+		log.Printf("[%s]-成功执行清理任务\n", task.Name)
 	}
 }
-
-func GetCurrentDirectory() string {
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0])) //返回绝对路径  filepath.Dir(os.Args[0])去除最后一个元素的路径
-	if err != nil {
-		log.Fatal(err)
-	}
-	return strings.Replace(dir, "\\", "/", -1) //将\替换成/
-}
-
-func ListDir(config ConfigData) (files []fs.FileInfo, err error) {
+func ListDir(task Task) (files []fs.FileInfo, err error) {
 	files = make([]fs.FileInfo, 0)
-	dir, err := ioutil.ReadDir(config.Workdir)
+	dir, err := ioutil.ReadDir(task.Workdir)
 	if err != nil {
 		return nil, err
 	}
-	reg1, err := regexp.Compile(config.Filter.Regex)
-
-	if reg1 == nil { //失败
+	Regx, _ := regexp.Compile(task.Regex)
+	if Regx == nil { //失败
 		return nil, errors.New("正则表达式错误")
 	}
-
 	exeFile, _ := exec.LookPath(os.Args[0])
-	log.Println("exeFile:" + exeFile)
 	for _, fi := range dir {
-		if config.Filter.File {
-			if fi.IsDir() {
-				// 忽略目录
-				continue
-			}
-		} else if !fi.IsDir() {
+		if task.Type == 1 && fi.IsDir() {
+			// 忽略目录
+			continue
+		} else if task.Type == 2 && !fi.IsDir() {
 			// 忽略文件
+			continue
+		}
+		if task.Type > 3 || task.Type < 1 {
 			continue
 		}
 		if fi.Name() == "config.yml" || fi.Name() == path.Base(exeFile) {
 			//忽略配置文件
 			continue
 		}
-		if reg1.MatchString(fi.Name()) {
+		isExclude := false
+		for _, Exclude := range task.Excludes {
+			ExcludeRegx, _ := regexp.Compile(Exclude)
+			if ExcludeRegx == nil { //失败
+				return nil, errors.New("排除文件正则表达式错误：" + Exclude)
+			}
+			if task.Test {
+				log.Printf("排除文件 正则：%s 文件名：%s 匹配结果：%v\n", Exclude, fi.Name(), ExcludeRegx.MatchString(fi.Name()))
+			}
+			if ExcludeRegx.MatchString(fi.Name()) {
+				isExclude = true
+				break
+			}
+		}
+		if isExclude {
+			continue
+		}
+		if Regx.MatchString(fi.Name()) {
 			files = append(files, fi)
+		}
+		if len(files) >= task.Batch {
+			break
 		}
 	}
 	return files, nil
