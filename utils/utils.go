@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
@@ -15,25 +16,25 @@ import (
 type LogConfig struct {
 	Level string `default:"INFO"`
 	Time  string `default:"24h"`
-	Count uint   `default:"200"`
+	Count uint   `default:"190"`
 }
 type TaskConfig struct {
 	Name string `required:"true"`
 	//  要清理的日志或备份文件所在目录
 	Workdir string `required:"true"`
 	//  定时执行清理任务
-	Corn string `default:"0 0 0 * * ? *"`
+	Corn string `default:"0 0 0 * * ?"`
 	//清理文件还是目录  1文件2目录
 	Type int `yaml:"filter-type",default:"1"`
 	//清理服务正则表达式的文件或目录
 	Regex    string   `yaml:"filter-regex",default:""`
 	Excludes []string `yaml:"excludes-regex"`
 	//最少保留最近几个文件
-	Keep int `yaml:"clear-keep"`
+	Keep int `yaml:"clear-keep",default:"190"`
 	//最少保留最近几天(多久)的文件
 	Offset string `yaml:"time-offset",default:"190d"`
 	//批量处理文件数
-	Batch int `yaml:"max-batch",default:"200""`
+	Batch int `yaml:"max-batch",default:"1000""`
 	//测试模式不会删除文件
 	Test bool `yaml:"test"`
 }
@@ -44,7 +45,6 @@ type AppConfig struct {
 
 func LoadAppConfig(path string) (AppConfig, error) {
 	var appConfig = AppConfig{}
-	//err := configor.Load(&taskConfig, path)
 	f, err := os.Open(path)
 	if err != nil {
 		return appConfig, err
@@ -54,7 +54,7 @@ func LoadAppConfig(path string) (AppConfig, error) {
 	err = dec.Decode(&appConfig)
 	if err == nil {
 		if appConfig.Log.Count < 10 {
-			appConfig.Log.Count = 200
+			appConfig.Log.Count = 190
 		}
 		if appConfig.Log.Time == "" {
 			appConfig.Log.Time = "24h"
@@ -74,7 +74,7 @@ func LoadAppConfig(path string) (AppConfig, error) {
 				task.Type = 1
 			}
 			if task.Keep < 1 {
-				task.Keep = 100
+				task.Keep = 190
 			}
 			if task.Batch < 1 {
 				task.Batch = 1000
@@ -89,9 +89,9 @@ func LoadAppConfig(path string) (AppConfig, error) {
 	}
 	jsonStr, jsonErr := json.MarshalIndent(appConfig, "", "\t")
 	if jsonErr != nil {
-		log.Printf("将配置格式化为字符串错误:%v", jsonErr)
+		fmt.Printf("将配置格式化为字符串错误:%v", jsonErr)
 	} else {
-		log.Printf("配置信息：%s", string(jsonStr))
+		fmt.Printf("配置信息：%s", string(jsonStr))
 	}
 
 	return appConfig, err

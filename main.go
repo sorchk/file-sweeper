@@ -39,11 +39,12 @@ func (p *Program) run() {
 }
 
 var (
-	configName = "config.yml"
-	action     string
-	workDir    string
-	exeName    string
-	configPath string
+	configName  = "config.yml"
+	serviceName = "fileSweeper"
+	action      string
+	workDir     string
+	exeName     string
+	configPath  string
 )
 
 func initLog() {
@@ -53,7 +54,7 @@ func initLog() {
 		logPath+".%Y-%m-%d.log",
 		rotatelogs.WithLinkName(logPath+".log"),
 		rotatelogs.WithRotationTime(utils.GetDurationTime(appConfig.Log.Time)),
-		rotatelogs.WithRotationCount(uint(appConfig.Log.Count)),
+		rotatelogs.WithRotationCount(appConfig.Log.Count),
 		rotatelogs.WithRotationSize(100*1024*1024),
 	)
 	writers := []io.Writer{
@@ -107,7 +108,7 @@ func initService() (service.Service, error) {
 		options["SuccessExitStatus"] = "1 2 8 SIGKILL"
 	}
 	svcConfig := &service.Config{
-		Name:        "fileSweeper",
+		Name:        serviceName,
 		DisplayName: "文件清道夫",
 		Description: "定时计划执行日志文件清理，备份文件清理等任务",
 		Option:      options,
@@ -164,7 +165,7 @@ func main() {
 			for {
 				err := <-errs
 				if err != nil {
-					log.Errorf("服务错误：v%", err)
+					log.Errorf("服务错误：%v", err)
 				}
 			}
 		}()
@@ -176,7 +177,7 @@ func main() {
 			}
 		} else if action == "status" {
 			status, err := s.Status()
-			log.Infof("服务状态:%v  %s", status, " （0错误，1运行，2停止）")
+			log.Infof("服务状态:%v  %s", status, " （0错误，1运行中，2停止）")
 			if err != nil {
 				log.Fatalf("读取服务状态失败:%v", err)
 			}
@@ -185,7 +186,7 @@ func main() {
 			if err != nil {
 				log.Fatalf("安装服务失败:%v", err)
 			} else {
-				log.Println("安装服务成功")
+				log.Println("安装服务成功,服务名：" + serviceName)
 			}
 		} else if action == "uninstall" {
 			err := s.Uninstall()
