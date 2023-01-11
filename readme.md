@@ -23,14 +23,64 @@ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/sweeper main.go
 
 #### 参数说明
 配置文件默认为程序错在目录下的config.xml,使用环境变量可以修改配置文件路面
-
+```yaml
+#日志配置
+log:
+  #日志级别 FATAL ERROR WARN INFO DEBUG 默认为INFO
+  level: "DEBUG"
+  #日志文件分割 每24小时重新生成一个文件 默认24小时
+  time: "24h"
+  #最大保留日志文件个数 默认200个也就是保证6个月
+  count: 200
+#任务配置
+tasks:
+    #任务名不可重复
+  - name: "样例任务"
+    #要清理的日志或备份文件所在目录
+    workdir: "/datadisk/testdata2"
+    #定时执行清理任务 默认 每天0点 0 0 0 * * ?
+    corn: "0 * * * * ?"
+    #清理符合类型的 1 文件 2目录 默认1
+    filter-type: 1
+    #清理符合正则表达式的文件或目录 默认.log结尾
+    filter-regex: ".+\\.txt"
+    #排除文件 排除优先与 上面的规则 默认无
+    excludes-regex:
+      - ".+副本 +4.+\\.txt"
+      - ".+副本 +5.+\\.txt"
+    #最少保留最近几个文件 默认200个文件
+    clear-keep: 200
+    #最少保留最近几天的文件 默认200天
+    time-offset: "200d"
+    #最大处理文件数，超出后将在下次任务处理 每次任务最多处理文件数
+    max-batch: 200
+    #测试模式不会删除文件
+    test: true
+  - name: "任务1"
+    workdir: "/datadisk/adp/logs/info"
+    corn: "0 * * * * ?"
+    #清理符合类型的 1 文件 2目录
+    filter-type: 1
+    #清理符合正则表达式的文件或目录
+    filter-regex: ".+\\.log"
+    #排除文件 排除优先与 上面的规则
+    excludes-regex:
+    #最少保留最近几个文件
+    clear-keep: 10
+    #最少保留最近几天的文件
+    time-offset: "240h"
+    #最大处理文件数，超出后将在下次任务处理
+    max-batch: 200
+```
 
 #### 命令实例
 ```shell
-#curl -o dfw https://gitee.com/sorc/log-clear/attach_files/1103945/download/logClear_linux_amd64 -O -L
+#curl -o dfw https://gitee.com/sorc/log-clear/attach_files/1103945/download/sweeper_linux_amd64 -O -L
 
 # 给执行权限
 chmod +x sweeper 
+# 无需安装服务立即运行一次清理任务
+./sweeper clear
 # 服务端安装
 ./sweeper install
 # 启动服务

@@ -3,6 +3,7 @@ package main
 import (
 	"fileClear/sweeper"
 	"fileClear/utils"
+	"fmt"
 	"github.com/kardianos/service"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	log "github.com/sirupsen/logrus"
@@ -20,19 +21,19 @@ type Program struct {
 }
 
 func (p *Program) Start(s service.Service) error {
-	log.Debugln("启动定时调度服务.", service.Platform())
+	log.Debugln("启动服务...", service.Platform())
 	p.exit = make(chan struct{})
 	go p.run()
-	log.Debugln("定时调度服务已启动")
+	log.Debugln("服务启动完成.")
 	return nil
 }
 func (p *Program) Stop(s service.Service) error {
-	log.Println("停止服务")
+	log.Println("停止服务.")
 	close(p.exit)
 	return nil
 }
 func (p *Program) run() {
-	log.Debugln("调度中...")
+	log.Debugln("服务运行中...")
 	// 启动服务
 	sweeper.StartServer(appConfig)
 }
@@ -85,6 +86,15 @@ func isServiceAction(target string) bool {
 	}
 	return false
 }
+func isAction(target string) bool {
+	strArray := []string{"install", "uninstall", "start", "stop", "restart", "status", "run", "", "clear"}
+	for _, element := range strArray {
+		if target == element {
+			return true
+		}
+	}
+	return false
+}
 func initService() (service.Service, error) {
 	//服务的配置信息
 	options := make(service.KeyValue)
@@ -126,6 +136,10 @@ func main() {
 
 	if len(os.Args) > 1 {
 		action = os.Args[1]
+	}
+	if !isAction(action) {
+		help()
+		return
 	}
 
 	//初始化日志
@@ -212,13 +226,20 @@ func main() {
 			return
 		}
 	} else {
-		log.Info(exeName + " install 安装服务")
-		log.Info(exeName + " uninstall 卸载服务")
-		log.Info(exeName + " start 启动服务")
-		log.Info(exeName + " stop 停止服务")
-		log.Info(exeName + " restart 重启服务")
-		log.Info(exeName + " status 查看服务状态")
-		log.Info(exeName + " run 控制台运行定时任务服务")
-		log.Info(exeName + " clear 无需安装服务运行一次清理任务")
+		help()
 	}
+}
+func help() {
+	fmt.Println("")
+	fmt.Println("---------------命令使用说明--------------------------------")
+	fmt.Println(exeName + " clear 无需安装服务，立即运行一次清理任务")
+	fmt.Println(exeName + " install 安装服务")
+	fmt.Println(exeName + " uninstall 卸载服务")
+	fmt.Println(exeName + " start 启动服务")
+	fmt.Println(exeName + " stop 停止服务")
+	fmt.Println(exeName + " restart 重启服务")
+	fmt.Println(exeName + " status 查看服务状态")
+	fmt.Println(exeName + " run 控制台运行定时任务服务")
+	fmt.Println("--------------------------------------------------------")
+	fmt.Println("")
 }
