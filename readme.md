@@ -10,33 +10,35 @@ go env -w GOPROXY=https://mirrors.aliyun.com/goproxy/
 ```
 ### 交叉编译
 ```shell
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/fileClear_linux_amd64 main.go
-CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o build/fileClear_linux_arm64 main.go
-CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o build/fileClear_mac_amd64 main.go
-CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o build/fileClear_windows_amd64.exe main.go
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/sweeper_linux_amd64 main.go
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o build/sweeper_linux_arm64 main.go
+CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o build/sweeper_mac_amd64 main.go
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o build/sweeper_windows_amd64.exe main.go
+
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o build/sweeper main.go
 
 ```
 
 ## 使用说明
 
 #### 参数说明
-- -a     #程序模式，clear立即清理 install安装服务，uninstall卸载服务 start,restart, stop,status 
-- -c       #配置文件路径 不适用默认文当前目录下的config.yml
+配置文件默认为程序错在目录下的config.xml,使用环境变量可以修改配置文件路面
+
 
 #### 命令实例
 ```shell
 #curl -o dfw https://gitee.com/sorc/log-clear/attach_files/1103945/download/logClear_linux_amd64 -O -L
 
 # 给执行权限
-chmod +x logClear 
+chmod +x sweeper 
 # 服务端安装
-./logClear -a install -c /home/user/config.yml
+./sweeper install
 # 启动服务
-systemctl start logClear
+systemctl start sweeper
 # 停止服务
-systemctl stop logClear
+systemctl stop sweeper
 # 查看服务状态
-systemctl status logClear
+systemctl status sweeper
   
 ```
  
