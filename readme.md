@@ -75,7 +75,6 @@ tasks:
 
 #### 命令实例
 ```shell
-#curl -o dfw https://gitee.com/sorc/file-sweeper/attach_files/1103945/download/sweeper_linux_amd64 -O -L
 
 # 给执行权限
 chmod +x sweeper 
