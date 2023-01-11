@@ -1,9 +1,8 @@
-package fileClear
+package sweeper
 
 import (
 	"errors"
 	"fileClear/utils"
-
 	//"github.com/robfig/cron"
 	_ "encoding/json"
 	"github.com/jakecoffman/cron"
@@ -68,7 +67,7 @@ func ClearAll(configPath string) {
 }
 
 func Clear(task utils.TaskConfig) {
-	log.Infof("[%s]-开始执行清理任务,%v", task.Name)
+	log.Infof("[%s]-开始执行清理任务", task.Name)
 	if task.Test {
 		log.Warnf("[%s]-测试模式", task.Name)
 	}
@@ -124,14 +123,14 @@ func ListDir(task utils.TaskConfig) (files []fs.FileInfo, err error) {
 		return nil, errors.New("正则表达式错误")
 	}
 	for _, fi := range dir {
+		if task.Type != 2 && task.Type != 1 {
+			continue
+		}
 		if task.Type == 1 && fi.IsDir() {
 			// 忽略目录
 			continue
 		} else if task.Type == 2 && !fi.IsDir() {
 			// 忽略文件
-			continue
-		}
-		if task.Type > 3 || task.Type < 1 {
 			continue
 		}
 		isExclude := false

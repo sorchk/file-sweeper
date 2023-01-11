@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fileClear/fileClear"
+	"fileClear/sweeper"
 	"fileClear/utils"
 	"github.com/kardianos/service"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
@@ -20,7 +20,7 @@ type Program struct {
 }
 
 func (p *Program) Start(s service.Service) error {
-	log.Debugln("启动定时调度服务 %v.", service.Platform())
+	log.Debugln("启动定时调度服务.", service.Platform())
 	p.exit = make(chan struct{})
 	go p.run()
 	log.Debugln("定时调度服务已启动")
@@ -34,7 +34,7 @@ func (p *Program) Stop(s service.Service) error {
 func (p *Program) run() {
 	log.Debugln("调度中...")
 	// 启动服务
-	fileClear.StartServer(appConfig)
+	sweeper.StartServer(appConfig)
 }
 
 var (
@@ -135,7 +135,7 @@ func main() {
 	log.Debugf("配置文件:%s", configPath)
 
 	if action == "clear" {
-		fileClear.ClearAll(configPath)
+		sweeper.ClearAll(configPath)
 	} else if isServiceAction(action) {
 		s, err := initService()
 		if err != nil {

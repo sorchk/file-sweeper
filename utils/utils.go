@@ -13,7 +13,7 @@ import (
 )
 
 type LogConfig struct {
-	Level string `defalut:"INFO"`
+	Level string `default:"INFO"`
 	Time  string `default:"24h"`
 	Count uint   `default:"200"`
 }
@@ -24,16 +24,16 @@ type TaskConfig struct {
 	//  定时执行清理任务
 	Corn string `default:"0 0 0 * * ? *"`
 	//清理文件还是目录  1文件2目录
-	Type int `yaml:"filter-type"`
+	Type int `yaml:"filter-type",default:"1"`
 	//清理服务正则表达式的文件或目录
-	Regex    string   `yaml:"filter-regex"`
+	Regex    string   `yaml:"filter-regex",default:""`
 	Excludes []string `yaml:"excludes-regex"`
 	//最少保留最近几个文件
 	Keep int `yaml:"clear-keep"`
 	//最少保留最近几天(多久)的文件
-	Offset string `yaml:"time-offset"`
+	Offset string `yaml:"time-offset",default:"190d"`
 	//批量处理文件数
-	Batch int `yaml:"max-batch"`
+	Batch int `yaml:"max-batch",default:"200""`
 	//测试模式不会删除文件
 	Test bool `yaml:"test"`
 }
