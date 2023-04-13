@@ -2,7 +2,7 @@ package sweeper
 
 import (
 	"errors"
-	"fileClear/utils"
+	"fileClean/utils"
 	//"github.com/robfig/cron"
 	_ "encoding/json"
 	"github.com/jakecoffman/cron"
@@ -23,7 +23,7 @@ func StartServer(config utils.AppConfig) {
 		spec := task.Corn
 		log.Debugf("添加计划任务：%s", task.Name)
 		mainCron.AddFunc(spec, func() {
-			Clear(task)
+			Clean(task)
 			PrintNextJob(task.Name)
 		}, task.Name)
 	}
@@ -55,18 +55,18 @@ func PrintNextJob(name string) {
 	}
 }
 
-func ClearAll(configPath string) {
+func CleanAll(configPath string) {
 	var config, err = utils.LoadAppConfig(configPath)
 	if err != nil {
 		log.Fatalf("读取配置文件发生错误：%v", err)
 		return
 	}
 	for _, task := range config.Tasks {
-		Clear(task)
+		Clean(task)
 	}
 }
 
-func Clear(task utils.TaskConfig) {
+func Clean(task utils.TaskConfig) {
 	log.Infof("[%s]-开始执行清理任务", task.Name)
 	if task.Test {
 		log.Warnf("[%s]-测试模式", task.Name)

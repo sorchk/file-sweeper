@@ -29,8 +29,10 @@ type TaskConfig struct {
 	//清理服务正则表达式的文件或目录
 	Regex    string   `yaml:"filter-regex",default:""`
 	Excludes []string `yaml:"excludes-regex"`
+	//最少保留最近几个文件 兼容以前的配置
+	KeepOld int `yaml:"clear-keep",default:"0"`
 	//最少保留最近几个文件
-	Keep int `yaml:"clear-keep",default:"190"`
+	Keep int `yaml:"clean-keep",default:"0"`
 	//最少保留最近几天(多久)的文件
 	Offset string `yaml:"time-offset",default:"190d"`
 	//批量处理文件数
@@ -72,6 +74,10 @@ func LoadAppConfig(path string) (AppConfig, error) {
 			}
 			if task.Type < 1 {
 				task.Type = 1
+			}
+			//兼容以前的配置
+			if task.KeepOld != 0 && task.Keep == 0 {
+				task.Keep = task.KeepOld
 			}
 			if task.Keep < 1 {
 				task.Keep = 190

@@ -13,7 +13,7 @@ tasks:
     #排除文件 排除优先与 上面的规则
     excludes-regex:
     #最少保留最近几个文件
-    clear-keep: 10
+    clean-keep: 10
     #最少保留最近几天的文件
     time-offset: "240h"
     #最大处理文件数，超出后将在下次任务处理
@@ -32,7 +32,7 @@ tasks:
       - ".+副本 +4.+\\.txt"
       - ".+副本 +5.+\\.txt"
     #最少保留最近几个文件
-    clear-keep: 3
+    clean-keep: 3
     #最少保留最近几天的文件
     time-offset: "1h"
     #最大处理文件数，超出后将在下次任务处理

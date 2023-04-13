@@ -30,7 +30,7 @@ log:
   level: "DEBUG"
   #日志文件分割 每24小时重新生成一个文件 默认24小时
   time: "24h"
-  #最大保留日志文件个数 默认190个也就是保证6个月
+  #最大保留日志文件个数 默认190个也就是保证6个月，小于10则默认为190
   count: 190
 #任务配置
 tasks:
@@ -48,8 +48,8 @@ tasks:
     excludes-regex:
       - ".+副本 +4.+\\.txt"
       - ".+副本 +5.+\\.txt"
-    #最少保留最近几个文件 默认190个文件
-    clear-keep: 190
+    #最少保留最近几个文件 默认190个文件 小于0则默认190
+    clean-keep: 190
     #最少保留最近几天的文件 默认190天
     time-offset: "190d"
     #最大处理文件数，超出后将在下次任务处理 每次任务最多处理文件数 默认1000
@@ -66,7 +66,7 @@ tasks:
     #排除文件 排除优先与 上面的规则
     excludes-regex:
     #最少保留最近几个文件
-    clear-keep: 10
+    clean-keep: 10
     #最少保留最近几天的文件
     time-offset: "240h"
     #最大处理文件数，超出后将在下次任务处理
@@ -81,7 +81,7 @@ chmod +x sweeper
 # 查看命令帮助
 ./sweeper help
 # 无需安装服务立即运行一次清理任务
-./sweeper clear
+./sweeper clean
 # 服务端安装
 ./sweeper install
 # 启动服务
@@ -92,4 +92,3 @@ systemctl stop sweeper
 systemctl status sweeper
   
 ```
- 

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fileClear/sweeper"
-	"fileClear/utils"
+	"fileClean/sweeper"
+	"fileClean/utils"
 	"fmt"
 	"github.com/kardianos/service"
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
@@ -88,7 +88,7 @@ func isServiceAction(target string) bool {
 	return false
 }
 func isAction(target string) bool {
-	strArray := []string{"install", "uninstall", "start", "stop", "restart", "status", "run", "", "clear"}
+	strArray := []string{"install", "uninstall", "start", "stop", "restart", "status", "run", "", "clear", "clean"}
 	for _, element := range strArray {
 		if target == element {
 			return true
@@ -149,8 +149,8 @@ func main() {
 	log.Infof("工作目录:%s", workDir)
 	log.Debugf("配置文件:%s", configPath)
 
-	if action == "clear" {
-		sweeper.ClearAll(configPath)
+	if action == "clean" || action == "clear" {
+		sweeper.CleanAll(configPath)
 	} else if isServiceAction(action) {
 		s, err := initService()
 		if err != nil {
@@ -233,7 +233,7 @@ func main() {
 func help() {
 	fmt.Println("")
 	fmt.Println("---------------命令使用说明--------------------------------")
-	fmt.Println(exeName + " clear 无需安装服务，立即运行一次清理任务")
+	fmt.Println(exeName + " clean 无需安装服务，立即运行一次清理任务")
 	fmt.Println(exeName + " install 安装服务")
 	fmt.Println(exeName + " uninstall 卸载服务")
 	fmt.Println(exeName + " start 启动服务")
