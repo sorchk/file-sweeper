@@ -139,18 +139,19 @@ func ListFile(dirPath string, task utils.TaskConfig) (files []fs.FileInfo, err e
 			// 忽略文件
 			continue
 		} else if (task.Type == 3 || task.Type == 4) && fi.IsDir() {
-			filesSub, err := ListFile(fi.Name(), task)
+			dirString := dirPath + string(PathSeparator) + fi.Name()
+			filesSub, err := ListFile(dirString, task)
 			if err != nil {
 				return nil, err
 			}
 			if task.Type == 4 {
-				dirs, err := os.ReadDir(fi.Name())
+				dirs, err := os.ReadDir(dirString)
 				if err == nil && len(dirs) == 0 {
-					log.Infof("[%s]-删除空目录：%s", task.Name, fi.Name())
+					log.Infof("[%s]-删除空目录：%s", task.Name, dirString)
 					if task.Test {
 						continue
 					}
-					os.RemoveAll(fi.Name())
+					os.RemoveAll(dirString)
 				}
 			}
 			files = append(files, filesSub...)
