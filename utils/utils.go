@@ -142,11 +142,21 @@ func GetDurationTime(timeStr string) time.Duration {
 	return dayTime + hourTime + minuteTime + secondTime
 }
 
+const (
+	PathSeparator     = '/' // OS-specific path separator
+	PathListSeparator = ':' // OS-specific path list separator
+)
+
+type FileData struct {
+	Dir  string
+	File fs.FileInfo
+}
+
 // 按文件名排序，可扩展至文件时间
-type ByModTime []fs.FileInfo
+type ByModTime []FileData
 
 func (f ByModTime) Less(i, j int) bool {
-	return f[i].ModTime().UnixMilli() > f[j].ModTime().UnixMilli()
+	return f[i].File.ModTime().UnixMilli() > f[j].File.ModTime().UnixMilli()
 }                                 // 文件名倒序
 func (f ByModTime) Len() int      { return len(f) }
 func (f ByModTime) Swap(i, j int) { f[i], f[j] = f[j], f[i] }

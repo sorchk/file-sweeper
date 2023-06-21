@@ -7,7 +7,6 @@ import (
 	_ "encoding/json"
 	"github.com/jakecoffman/cron"
 	log "github.com/sirupsen/logrus"
-	"io/fs"
 	"os"
 	"regexp"
 	"sort"
@@ -54,11 +53,6 @@ func PrintNextJob(name string) {
 	}
 }
 
-const (
-	PathSeparator     = '/' // OS-specific path separator
-	PathListSeparator = ':' // OS-specific path list separator
-)
-
 func CleanAll(configPath string) {
 	var config, err = utils.LoadAppConfig(configPath)
 	if err != nil {
@@ -84,8 +78,9 @@ func Clean(task utils.TaskConfig) {
 	//按修改时间倒叙排列
 	sort.Sort(utils.ByModTime(files))
 	log.Debugf("[%s]-文件列表：", task.Name)
-	for _, fi := range files {
-		log.Debugf("[%s]-%s", task.Name, fi.Name())
+	for _, fd := range files {
+		allPath := fd.Dir + string(utils.PathSeparator) + fd.File.Name()
+		log.Debugf("[%s]-%s", task.Name, allPath)
 	}
 	//跳过最小保留文件数
 	keep := len(files)
@@ -98,13 +93,12 @@ func Clean(task utils.TaskConfig) {
 	//计算偏移时间
 	offsetTime := utils.GetDurationTime(task.Offset)
 	log.Debugf("[%s]-保留最近文件时间：%s", task.Name, offsetTime.String())
-	for _, fi := range files {
-		if fi.ModTime().UnixMilli() > (time.Now().UnixMilli() - offsetTime.Milliseconds()) {
+	for _, fd := range files {
+		if fd.File.ModTime().UnixMilli() > (time.Now().UnixMilli() - offsetTime.Milliseconds()) {
 			//跳过保留内的文件
 			continue
 		}
-
-		delPath := task.Workdir + string(PathSeparator) + fi.Name()
+		delPath := fd.Dir + string(utils.PathSeparator) + fd.File.Name()
 		log.Infof("[%s]-删除文件：%s", task.Name, delPath)
 		if task.Test {
 			continue
@@ -117,8 +111,9 @@ func Clean(task utils.TaskConfig) {
 	}
 	log.Infof("[%s]-成功执行清理任务", task.Name)
 }
-func ListFile(dirPath string, task utils.TaskConfig) (files []fs.FileInfo, err error) {
-	files = make([]fs.FileInfo, 0)
+
+func ListFile(dirPath string, task utils.TaskConfig) (files []utils.FileData, err error) {
+	files = make([]utils.FileData, 0)
 	dir, err := os.ReadDir(dirPath)
 
 	if err != nil {
@@ -139,19 +134,19 @@ func ListFile(dirPath string, task utils.TaskConfig) (files []fs.FileInfo, err e
 			// 忽略文件
 			continue
 		} else if (task.Type == 3 || task.Type == 4) && fi.IsDir() {
-			dirString := dirPath + string(PathSeparator) + fi.Name()
-			filesSub, err := ListFile(dirString, task)
+			allPath := dirPath + string(utils.PathSeparator) + fi.Name()
+			filesSub, err := ListFile(allPath, task)
 			if err != nil {
 				return nil, err
 			}
 			if task.Type == 4 {
-				dirs, err := os.ReadDir(dirString)
+				dirs, err := os.ReadDir(allPath)
 				if err == nil && len(dirs) == 0 {
-					log.Infof("[%s]-删除空目录：%s", task.Name, dirString)
+					log.Infof("[%s]-删除空目录：%s", task.Name, allPath)
 					if task.Test {
 						continue
 					}
-					os.RemoveAll(dirString)
+					os.RemoveAll(allPath)
 				}
 			}
 			files = append(files, filesSub...)
@@ -178,7 +173,7 @@ func ListFile(dirPath string, task utils.TaskConfig) (files []fs.FileInfo, err e
 		if Regx.MatchString(fi.Name()) {
 			ft, err := fi.Info()
 			if err == nil {
-				files = append(files, ft)
+				files = append(files, utils.FileData{Dir: dirPath, File: ft})
 			}
 		}
 		if len(files) >= task.Batch {
@@ -187,6 +182,6 @@ func ListFile(dirPath string, task utils.TaskConfig) (files []fs.FileInfo, err e
 	}
 	return files, nil
 }
-func ListDir(task utils.TaskConfig) (files []fs.FileInfo, err error) {
+func ListDir(task utils.TaskConfig) (files []utils.FileData, err error) {
 	return ListFile(task.Workdir, task)
 }

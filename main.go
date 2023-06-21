@@ -48,7 +48,7 @@ var (
 
 func initLog() {
 	appConfig, _ = utils.LoadAppConfig(configPath)
-	logPath := workDir + string(sweeper.PathSeparator) + exeName
+	logPath := workDir + string(utils.PathSeparator) + exeName
 	writer, _ := rotatelogs.New(
 		logPath+".%Y-%m-%d.log",
 		rotatelogs.WithLinkName(logPath+".log"),
@@ -131,7 +131,7 @@ func main() {
 	exeFile, _ := os.Executable()
 	exeName = path.Base(exeFile)
 	if configPath == "" {
-		configPath = workDir + string(sweeper.PathSeparator) + configName
+		configPath = workDir + string(utils.PathSeparator) + configName
 	}
 
 	if len(os.Args) > 1 {
