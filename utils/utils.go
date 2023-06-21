@@ -102,14 +102,14 @@ func LoadAppConfig(path string) (AppConfig, error) {
 	return appConfig, err
 }
 func GetDurationTime(timeStr string) time.Duration {
+	start := 0
 	i := strings.Index(timeStr, "d")
 	dayTime := time.Duration(0)
-	start := 0
 	if i != -1 {
 		day, err := strconv.Atoi(timeStr[start:i])
 		start = i + 1
 		dayTime = time.Duration(day) * time.Hour * 24
-		if err != nil {
+		if err == nil {
 			dayTime = time.Duration(day) * time.Hour * 24
 		}
 	}
@@ -118,7 +118,7 @@ func GetDurationTime(timeStr string) time.Duration {
 	if i != -1 {
 		hour, err := strconv.Atoi(timeStr[start:i])
 		start = i + 1
-		if err != nil {
+		if err == nil {
 			hourTime = time.Duration(hour) * time.Hour
 		}
 	}
@@ -127,7 +127,7 @@ func GetDurationTime(timeStr string) time.Duration {
 	if i != -1 {
 		minute, err := strconv.Atoi(timeStr[start:i])
 		start = i + 1
-		if err != nil {
+		if err == nil {
 			minuteTime = time.Duration(minute) * time.Minute
 		}
 	}
@@ -135,7 +135,7 @@ func GetDurationTime(timeStr string) time.Duration {
 	secondTime := time.Duration(0)
 	if i != -1 {
 		second, err := strconv.Atoi(timeStr[start:i])
-		if err != nil {
+		if err == nil {
 			secondTime = time.Duration(second) * time.Second
 		}
 	}
