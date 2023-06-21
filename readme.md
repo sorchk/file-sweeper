@@ -40,7 +40,7 @@ tasks:
     workdir: "/datadisk/testdata2"
     #定时执行清理任务 默认 每天0点 0 0 0 * * ?
     corn: "0 * * * * ?"
-    #清理符合类型的 1 文件 2目录 默认1
+    #清理符合类型的 1 文件 2目录 3递归目录文件 4递归目录文件清理空目录
     filter-type: 1
     #清理符合正则表达式的文件或目录 默认.log结尾
     filter-regex: ".+\\.txt"

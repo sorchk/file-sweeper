@@ -1,6 +1,6 @@
 module fileClean
 
-go 1.17
+go 1.19
 
 require (
 	github.com/jakecoffman/cron v0.0.0-20190106200828-7e2009c226a5

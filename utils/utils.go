@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"gopkg.in/yaml.v3"
+	"io/fs"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -51,7 +51,6 @@ func LoadAppConfig(path string) (AppConfig, error) {
 	if err != nil {
 		return appConfig, err
 	}
-	defer f.Close()
 	dec := yaml.NewDecoder(f)
 	err = dec.Decode(&appConfig)
 	if err == nil {
@@ -144,7 +143,7 @@ func GetDurationTime(timeStr string) time.Duration {
 }
 
 // 按文件名排序，可扩展至文件时间
-type ByModTime []os.FileInfo
+type ByModTime []fs.FileInfo
 
 func (f ByModTime) Less(i, j int) bool {
 	return f[i].ModTime().UnixMilli() > f[j].ModTime().UnixMilli()
@@ -160,10 +159,10 @@ func GetCurrentDirectory() string {
 	return dir
 }
 func GetExeFileDirectory() string {
-	exeFile, _ := exec.LookPath(os.Args[0])
-	dir, err := filepath.Abs(filepath.Dir(exeFile))
+	exePath, err := os.Executable()
 	if err != nil {
 		log.Fatal(err)
 	}
-	return dir
+	res, _ := filepath.EvalSymlinks(filepath.Dir(exePath))
+	return res
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/jakecoffman/cron"
 	log "github.com/sirupsen/logrus"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"sort"
@@ -55,6 +54,11 @@ func PrintNextJob(name string) {
 	}
 }
 
+const (
+	PathSeparator     = '/' // OS-specific path separator
+	PathListSeparator = ':' // OS-specific path list separator
+)
+
 func CleanAll(configPath string) {
 	var config, err = utils.LoadAppConfig(configPath)
 	if err != nil {
@@ -99,7 +103,8 @@ func Clean(task utils.TaskConfig) {
 			//跳过保留内的文件
 			continue
 		}
-		delPath := task.Workdir + string(os.PathSeparator) + fi.Name()
+
+		delPath := task.Workdir + string(PathSeparator) + fi.Name()
 		log.Infof("[%s]-删除文件：%s", task.Name, delPath)
 		if task.Test {
 			continue
@@ -112,9 +117,10 @@ func Clean(task utils.TaskConfig) {
 	}
 	log.Infof("[%s]-成功执行清理任务", task.Name)
 }
-func ListDir(task utils.TaskConfig) (files []fs.FileInfo, err error) {
+func ListFile(dirPath string, task utils.TaskConfig) (files []fs.FileInfo, err error) {
 	files = make([]fs.FileInfo, 0)
-	dir, err := ioutil.ReadDir(task.Workdir)
+	dir, err := os.ReadDir(dirPath)
+
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +129,7 @@ func ListDir(task utils.TaskConfig) (files []fs.FileInfo, err error) {
 		return nil, errors.New("正则表达式错误")
 	}
 	for _, fi := range dir {
-		if task.Type != 2 && task.Type != 1 {
+		if task.Type != 2 && task.Type != 1 && task.Type != 3 && task.Type != 4 {
 			continue
 		}
 		if task.Type == 1 && fi.IsDir() {
@@ -132,7 +138,25 @@ func ListDir(task utils.TaskConfig) (files []fs.FileInfo, err error) {
 		} else if task.Type == 2 && !fi.IsDir() {
 			// 忽略文件
 			continue
+		} else if (task.Type == 3 || task.Type == 4) && fi.IsDir() {
+			filesSub, err := ListFile(fi.Name(), task)
+			if err != nil {
+				return nil, err
+			}
+			if task.Type == 4 {
+				dirs, err := os.ReadDir(fi.Name())
+				if err == nil && len(dirs) == 0 {
+					log.Infof("[%s]-删除空目录：%s", task.Name, fi.Name())
+					if task.Test {
+						continue
+					}
+					os.RemoveAll(fi.Name())
+				}
+			}
+			files = append(files, filesSub...)
+			continue
 		}
+
 		isExclude := false
 		for _, Exclude := range task.Excludes {
 			ExcludeRegx, _ := regexp.Compile(Exclude)
@@ -151,11 +175,17 @@ func ListDir(task utils.TaskConfig) (files []fs.FileInfo, err error) {
 			continue
 		}
 		if Regx.MatchString(fi.Name()) {
-			files = append(files, fi)
+			ft, err := fi.Info()
+			if err == nil {
+				files = append(files, ft)
+			}
 		}
 		if len(files) >= task.Batch {
 			break
 		}
 	}
 	return files, nil
+}
+func ListDir(task utils.TaskConfig) (files []fs.FileInfo, err error) {
+	return ListFile(task.Workdir, task)
 }

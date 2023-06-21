@@ -9,7 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
-	"os/exec"
 	"path"
 	"runtime"
 )
@@ -49,7 +48,7 @@ var (
 
 func initLog() {
 	appConfig, _ = utils.LoadAppConfig(configPath)
-	logPath := workDir + string(os.PathSeparator) + exeName
+	logPath := workDir + string(sweeper.PathSeparator) + exeName
 	writer, _ := rotatelogs.New(
 		logPath+".%Y-%m-%d.log",
 		rotatelogs.WithLinkName(logPath+".log"),
@@ -129,10 +128,10 @@ func main() {
 	configPath = os.Getenv("fc_conf_path")
 	//初始化常用变量
 	workDir = utils.GetExeFileDirectory()
-	exeFile, _ := exec.LookPath(os.Args[0])
+	exeFile, _ := os.Executable()
 	exeName = path.Base(exeFile)
 	if configPath == "" {
-		configPath = workDir + string(os.PathSeparator) + configName
+		configPath = workDir + string(sweeper.PathSeparator) + configName
 	}
 
 	if len(os.Args) > 1 {
